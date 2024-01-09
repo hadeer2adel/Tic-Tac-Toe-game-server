@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.net.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
 
-<AnchorPane id="AnchorPane" prefHeight="400.0" prefWidth="600.0" styleClass="mainFxmlClass" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Screens.Home_ScreenController">
-    <stylesheets>
-        <URL value="@Home_Screen.css"/>
-    </stylesheets>
-</AnchorPane>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Button fx:id="btn_server_is_off" layoutX="203.0" layoutY="103.0" mnemonicParsing="false" prefHeight="51.0" prefWidth="182.0" style="-fx-background-radius: 50px; -fx-background-color: #FCD015;" text="Server is off">
+         <font>
+            <Font name="System Bold Italic" size="24.0" />
+         </font>
+      </Button>
+      <Button fx:id="btn_player_status" layoutX="203.0" layoutY="200.0" mnemonicParsing="false" prefHeight="51.0" prefWidth="182.0" style="-fx-background-radius: 50px; -fx-background-color: #FCD015;" text="Player Status">
+         <font>
+            <Font name="System Bold Italic" size="24.0" />
+         </font>
+      </Button>
+   </children>
+</Pane>
