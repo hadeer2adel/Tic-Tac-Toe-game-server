@@ -1,7 +1,6 @@
-/*
- * Empty Stylesheet file.
- */
-
-.mainFxmlClass {
-
+.back_btn{
+    -fx-background-color: #FCD015;
+    -fx-background-radius: 20px;
+    -fx-pref-height: 40px;
+    -fx-pref-width: 80px;
 }
