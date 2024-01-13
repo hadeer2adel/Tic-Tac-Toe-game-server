@@ -38,7 +38,7 @@ public class DataAccessObject {
         int result = 0;
         String sqlStat = "insert into UserData values(?, ?, ?, ?, 0, false, false)";
         PreparedStatement pst = con.prepareStatement(sqlStat);
-        pst.setInt(1, getNextID("UserData"));
+        pst.setInt(1, getNextUserID());
         pst.setString(2, user.getName());
         pst.setString(3, user.getEmail());
         pst.setString(4, user.getPassword());
@@ -63,11 +63,10 @@ public class DataAccessObject {
         
     }
     
-    public static int getNextID(String tableName) throws SQLException {
+    public static int getNextUserID() throws SQLException {
         int id;
-        String sqlStat = "select max(id) from ?";
+        String sqlStat = "select max(id) from UserData";
         PreparedStatement pst = con.prepareStatement(sqlStat);
-        pst.setString(1, tableName);
         ResultSet rs = pst.executeQuery();
         
         if(rs.next())
@@ -106,6 +105,29 @@ public class DataAccessObject {
         return result;
     }
     
+    public static int[] getChartData() throws SQLException {
+        int[] players = new int[3];
+        players[0] = -1;
+        
+        String sqlStat = "select count(id) from UserData WHERE is_Available = false";
+        PreparedStatement pst = con.prepareStatement(sqlStat);
+        ResultSet rs = pst.executeQuery();
+        if (rs.next()) 
+            players[0] = rs.getInt(1);
+        sqlStat = "select count(id) from UserData WHERE is_Available = true and is_OnGame = FALSE";
+        pst = con.prepareStatement(sqlStat);
+        rs = pst.executeQuery();
+        if (rs.next()) 
+            players[1] = rs.getInt(1);
+        sqlStat = "select count(id) from UserData WHERE is_Available = true and is_OnGame = true";
+        pst = con.prepareStatement(sqlStat);
+        rs = pst.executeQuery();
+        if (rs.next()) 
+            players[2] = rs.getInt(1);
+        
+        return players;
+    }
+    
     public static ArrayList<Records> getAllRecords(int id) throws SQLException {
         ArrayList<Records> allRecords = new ArrayList<Records>();
         
@@ -124,13 +146,29 @@ public class DataAccessObject {
         int result = 0;
         String sqlStat = "insert into Records values(?, ?, ?, ?)";
         PreparedStatement pst = con.prepareStatement(sqlStat);
-        pst.setInt(1, getNextID("Records"));
+        pst.setInt(1, getNextRecordID());
         pst.setString(2, record.getName());
         pst.setString(3, record.getSteps());
         pst.setInt(4, record.getUserId());
         result = pst.executeUpdate();
         pst.close();
         return result;
+    }
+    
+    public static int getNextRecordID() throws SQLException {
+        int id;
+        String sqlStat = "select max(id) from Records";
+        PreparedStatement pst = con.prepareStatement(sqlStat);
+        ResultSet rs = pst.executeQuery();
+        
+        if(rs.next())
+            id = rs.getInt(1) + 1;
+        else 
+            id = 1;
+        
+        pst.close();
+        rs.close();
+        return id;
     }
     
     public static void stop() throws SQLException {

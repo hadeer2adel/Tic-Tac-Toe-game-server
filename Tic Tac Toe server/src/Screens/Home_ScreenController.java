@@ -23,33 +23,52 @@ import javafx.stage.Stage;
 import server.Server;
 
 
-public class Home_ScreenController {
+public class Home_ScreenController implements Initializable{
 
     private Stage stage;
     private Scene scene;
     private Parent root;
-    private Server server;
+    private static Server server;
      
     @FXML
     private Button btn_server_is_off;
+
+    public static Server getServer() {
+        return server;
+    }
+
+    public static void setServer(Server server) {
+        Home_ScreenController.server = server;
+    }
+    
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        server = Chart_ScreenController.getServer();
+        if (server != null) {
+            btn_server_is_off.setText("Server is On");
+        } 
+        else{
+            btn_server_is_off.setText("Server is Off");
+        }
+    }
     
     public void switchServer(ActionEvent event) throws IOException, SQLException{//inviation Screen
-        String status = btn_server_is_off.getText();
-        if (status.equalsIgnoreCase("Server is Off")) {
+        if (server == null) {
             btn_server_is_off.setText("Server is On");
             DataAccessObject.start();
             server = new Server();
         } 
-        else if (status.equalsIgnoreCase("Server is On")) {
+        else{
             btn_server_is_off.setText("Server is Off");
             DataAccessObject.stop();
             server.stopServer();
+            server = null;
         }
     }
     
     public void switcToChartScreen(ActionEvent event) throws IOException{//inviation Screen
-        String status = btn_server_is_off.getText();
-        if (status.equalsIgnoreCase("Server is On")) {
+        if (server != null) {
+            Chart_ScreenController.setServer(server);
             root = FXMLLoader.load(getClass().getResource("/Screens/Chart_Screen.fxml"));
             stage = (Stage)((Node)event.getSource()).getScene().getWindow();
             scene = new Scene(root);

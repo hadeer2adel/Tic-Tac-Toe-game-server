@@ -35,6 +35,7 @@ public class Server implements Runnable{
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
+                serverSocket = null;
             }
         } catch (IOException e) {
             e.printStackTrace();
