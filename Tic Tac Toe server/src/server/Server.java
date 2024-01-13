@@ -1,36 +1,56 @@
 package server;
 
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class Server {
+public class Server implements Runnable{
     
-    ServerSocket serverSocket;
-    Socket socket;
-    int port = 5005;
-    
-    public Server()
-    {
+    private Thread thread;
+    private ServerSocket serverSocket;
+    private Socket clientSocket;
+    private int port = 5005;
+    private boolean running;
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    public Server(){
         try{
             serverSocket = new ServerSocket(port);
-            while(true)
-            {
-                socket = serverSocket.accept();
-                new UserHandler(socket);
-            }
-            
+            running = true;
+            thread = new Thread(this);
+            thread.start();
         } catch(IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
-    public static void main(String[] args) {
-        new Server();
+    public void stopServer() {
+        running = false;
+        thread.stop();
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-    
+
+    @Override
+    public void run() {
+        while(running){
+            try {
+                clientSocket = serverSocket.accept();
+                System.out.println("Client connected: " + clientSocket.getInetAddress());
+                new UserHandler(clientSocket);
+            } catch (IOException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
 }

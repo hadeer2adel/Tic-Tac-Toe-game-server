@@ -23,9 +23,9 @@ public class DataAccessObject {
     public static ArrayList<UserData> getAvailableUser() throws SQLException {
         ArrayList<UserData> availableUsers = new ArrayList<UserData>();
         
-        String sqlStat = "select * from UserData WHERE is_Available = true and is_OnGame = false";
+        String sqlStat = "select * from UserData WHERE is_Available = TRUE and is_OnGame = FALSE";
         PreparedStatement pst = con.prepareStatement(sqlStat);
-        ResultSet rs = pst.executeQuery(sqlStat);
+        ResultSet rs = pst.executeQuery();
         while (rs.next()) {
             UserData user = new UserData(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4),
                                         rs.getLong(5), rs.getBoolean(6), rs.getBoolean(7));
@@ -49,7 +49,7 @@ public class DataAccessObject {
     
     public static UserData getUser(String email, String password) throws SQLException {
        UserData user = null;
-       PreparedStatement pst = con.prepareStatement("select * from UserData where email = ? and password=?");
+       PreparedStatement pst = con.prepareStatement("select * from UserData where email = ? and password = ?");
        pst.setString(1, email);
        pst.setString(2, password);
        ResultSet rs = pst.executeQuery();
@@ -112,7 +112,7 @@ public class DataAccessObject {
         String sqlStat = "select * from Records WHERE userid = ?";
         PreparedStatement pst = con.prepareStatement(sqlStat);
         pst.setInt(1, id);
-        ResultSet rs = pst.executeQuery(sqlStat);
+        ResultSet rs = pst.executeQuery();
         while (rs.next()) {
             Records record = new Records(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getInt(4));
             allRecords.add(record);
