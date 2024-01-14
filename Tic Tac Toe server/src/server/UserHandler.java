@@ -64,6 +64,9 @@ public class UserHandler extends Thread
                 case "login":
                     login(requestJson);
                     break;
+                case "signup":
+                    signUp(requestJson);
+                    break;
                 default:
                     System.out.println("Unknown response type: " + responseType);
                     break;
@@ -107,5 +110,31 @@ public class UserHandler extends Thread
                     .build();
             mouth.writeUTF(responseJson.toString());
         }
+    }
+    
+    private void signUp(JsonObject requestJson) throws SQLException, IOException
+    {
+        String email = requestJson.getString("email");
+        String password = requestJson.getString("password");
+        String name = requestJson.getString("name");
+        UserData user = new UserData(MIN_PRIORITY, name, email, password, MIN_PRIORITY, true, true);
+        int added = DataAccessObject.addUser(user);
+        
+        if(added > 0 )
+        {
+            JsonObject responseJson = Json.createObjectBuilder()
+                    .add("response","signup")
+                    .add("status","success")
+                    .build();
+            mouth.writeUTF(responseJson.toString());
+        }
+        else {
+            JsonObject responseJson = Json.createObjectBuilder()
+                    .add("response","signup")
+                    .add("status","fail")
+                    .build();
+            mouth.writeUTF(responseJson.toString());
+        }
+        
     }
 }

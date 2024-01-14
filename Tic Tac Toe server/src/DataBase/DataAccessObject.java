@@ -14,7 +14,7 @@ public class DataAccessObject {
     
     public static void start() throws SQLException {
         dbURL = "jdbc:derby://localhost:1527/Tic Tac Toe Game";
-        dbName = "java";
+        dbName = "Java";
         dbPassword = "j1a2v3a4"; 
         DriverManager.registerDriver(new ClientDriver());
         con = DriverManager.getConnection(dbURL, dbName, dbPassword);
@@ -65,9 +65,9 @@ public class DataAccessObject {
     
     public static int getNextID(String tableName) throws SQLException {
         int id;
-        String sqlStat = "select max(id) from ?";
+        String sqlStat = "select max(id) from USERDATA";
         PreparedStatement pst = con.prepareStatement(sqlStat);
-        pst.setString(1, tableName);
+       // pst.setString(1, tableName);
         ResultSet rs = pst.executeQuery();
         
         if(rs.next())
