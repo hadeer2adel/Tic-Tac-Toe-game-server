@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.net.Socket;
+import java.net.SocketException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -23,20 +24,22 @@ import javax.json.JsonReader;
 public class UserHandler extends Thread
 {
     private static Vector<UserHandler> UserHandlers = new Vector<>();
-    private static ArrayList<UserData> onlinePlayers = new ArrayList<>();
     
-    private UserData player;
+    private int id;
+    private boolean online;
     private Socket clientSocket;
     private DataInputStream ear;
     private DataOutputStream mouth;
         
-    public UserHandler(Socket cs) {
+   public UserHandler(Socket cs) {
+        System.out.println("server.UserHandler.<init>()");
         clientSocket = cs;
-        UserHandlers.add(this);
         start();
     }
     
+    @Override
     public void run(){
+        System.out.println("server.UserHandler.run()");
         while(true){
             try {
                 ear = new DataInputStream(clientSocket.getInputStream());
@@ -44,12 +47,20 @@ public class UserHandler extends Thread
                 String serverResponse = ear.readUTF();
                 JsonReader jsonReader = Json.createReader(new StringReader(serverResponse));
                 JsonObject requestJson = jsonReader.readObject();
-                handleRequest(requestJson);
+                
+                if(requestJson.containsKey("response"))
+                    handleResponse(requestJson);
+                else if(requestJson.containsKey("request"))
+                    handleRequest(requestJson);
+                
             } catch (IOException ex) {
                 try {
+                    online = false;
+                    UserHandlers.remove(this);
                     clientSocket.close();
                     ear.close();
                     mouth.close();
+                    Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (IOException ex1) {
                     Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex1);
                 }
@@ -57,18 +68,39 @@ public class UserHandler extends Thread
         }
     }
     
-    private void handleRequest(JsonObject requestJson) {
+    private void handleResponse(JsonObject responseJson) {
+        System.out.println("server.UserHandler.handleResponse()");
         try {
-            String responseType = requestJson.getString("request");
+            String responseType = responseJson.getString("response");
             switch (responseType) {
+                case "invite":
+                    receiveInvitation(responseJson);
+                    break;
+                default:
+                    System.out.println("Unknown response type: " + responseType);
+                    break;
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+  
+    private void handleRequest(JsonObject requestJson) {
+        System.out.println("server.UserHandler.handleRequest()");
+        try {
+            String requestType = requestJson.getString("request");
+            switch (requestType) {
                 case "login":
                     login(requestJson);
                     break;
                 case "signup":
                     signUp(requestJson);
                     break;
+                case "invite":
+                    sendInvitation(requestJson);
+                    break;
                 default:
-                    System.out.println("Unknown response type: " + responseType);
+                    System.out.println("Unknown response type: " + requestType);
                     break;
             }
         } catch (SQLException ex) {
@@ -78,7 +110,9 @@ public class UserHandler extends Thread
         }
     }
 
+
     private void login(JsonObject requestJson) throws SQLException, IOException{
+        System.out.println("server.UserHandler.login()");
         String email = requestJson.getString("email");
         String password = requestJson.getString("password");
         
@@ -88,7 +122,10 @@ public class UserHandler extends Thread
             player.setIs_available(true);
             player.setIs_onGame(false);
             DataAccessObject.updateStatus(player);
-            onlinePlayers = DataAccessObject.getAvailableUser();
+            
+            online = true;
+            id = player.getId();
+            UserHandlers.add(this);
             
             JsonObject responseJson = Json.createObjectBuilder()
                     .add("response","login")
@@ -112,8 +149,8 @@ public class UserHandler extends Thread
         }
     }
     
-    private void signUp(JsonObject requestJson) throws SQLException, IOException
-    {
+    private void signUp(JsonObject requestJson) throws SQLException, IOException {
+        System.out.println("server.UserHandler.signUp()");
         String email = requestJson.getString("email");
         String password = requestJson.getString("password");
         String name = requestJson.getString("name");
@@ -136,5 +173,33 @@ public class UserHandler extends Thread
             mouth.writeUTF(responseJson.toString());
         }
         
+    }
+
+    private void sendInvitation(JsonObject requestJson) throws IOException{
+        System.out.println("server.UserHandler.sendInvitation()");
+        int id2 = requestJson.getInt("id2");
+        UserHandler player2 = getUser(id2);
+        player2.mouth.writeUTF(requestJson.toString());
+        mouth.flush();
+    }
+
+    private void receiveInvitation(JsonObject responseJson) throws IOException{
+        System.out.println("server.UserHandler.receiveInvitation()");
+        int id1 = responseJson.getInt("id1");
+        UserHandler player1 = getUser(id1);
+        player1.mouth.writeUTF(responseJson.toString());
+        mouth.flush();
+    }
+    
+    private UserHandler getUser(int id){
+        System.out.println("server.UserHandler.getUser()");
+        UserHandler userHandler = null;
+        for(UserHandler user : UserHandlers){
+            if(user.online && user.id == id)
+            {
+                userHandler = user;
+            }
+        }
+        return userHandler;
     }
 }
