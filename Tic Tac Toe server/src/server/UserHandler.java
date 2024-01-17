@@ -42,7 +42,7 @@ public class UserHandler extends Thread {
     @Override
     public void run() {
         System.out.println("server.UserHandler.run()");
-        while (true) {
+        while (!clientSocket.isClosed()) {
             try {
                 ear = new DataInputStream(clientSocket.getInputStream());
                 mouth = new DataOutputStream(clientSocket.getOutputStream());
@@ -56,21 +56,26 @@ public class UserHandler extends Thread {
                     handleRequest(requestJson);
                 }
 
+            } catch (SocketException se) {
+                closeSocket();
             } catch (IOException ex) {
-                try {
-                    online = false;
-                    UserHandlers.remove(this);
-                    clientSocket.close();
-                    ear.close();
-                    mouth.close();
-                    Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (IOException ex1) {
-                    Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex1);
-                }
+                closeSocket();
             }
         }
     }
 
+    private void closeSocket(){
+        try {
+            online = false;
+            UserHandlers.remove(this);
+            clientSocket.close();
+            ear.close();
+            mouth.close();
+        } catch (IOException ex1) {
+            Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex1);
+        }
+    }
+    
     private void handleResponse(JsonObject responseJson) {
         System.out.println("server.UserHandler.handleResponse()");
         try {
@@ -104,6 +109,9 @@ public class UserHandler extends Thread {
                     break;
                 case "invite":
                     sendInvitation(requestJson);
+                    break;
+                case "logout":
+                    logout(requestJson);
                     break;
                 default:
                     System.out.println("Unknown response type: " + requestType);
@@ -223,6 +231,27 @@ public class UserHandler extends Thread {
         UserHandler player1 = getUser(id1);
         player1.mouth.writeUTF(responseJson.toString());
         mouth.flush();
+    }
+    
+    private void logout(JsonObject requestJson) throws SQLException, IOException {
+        int id = requestJson.getInt("id");
+        UserData player = new UserData(id, "", "", "", 0, false, false);
+        int r = DataAccessObject.updateStatus(player);
+        
+        if(r != 0){
+            online = false;
+            JsonObject responseJson = Json.createObjectBuilder()
+                    .add("response", "login")
+                    .add("status", "success")
+                    .build();
+            mouth.writeUTF(responseJson.toString());
+        } else {
+            JsonObject responseJson = Json.createObjectBuilder()
+                    .add("response", "login")
+                    .add("status", "fail")
+                    .build();
+            mouth.writeUTF(responseJson.toString());
+        }
     }
 
     private UserHandler getUser(int id) {
