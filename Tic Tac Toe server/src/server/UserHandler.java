@@ -2,13 +2,9 @@ package server;
 
 import DTO.UserData;
 import DataBase.DataAccessObject;
-import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.io.StringReader;
 import java.net.Socket;
 import java.net.SocketException;
@@ -66,6 +62,8 @@ public class UserHandler extends Thread {
 
     private void closeSocket(){
         try {
+            UserData player = new UserData(id, "", "", "", 0, false, false);
+            int r = DataAccessObject.updateStatus(player);
             online = false;
             UserHandlers.remove(this);
             clientSocket.close();
@@ -73,6 +71,8 @@ public class UserHandler extends Thread {
             mouth.close();
         } catch (IOException ex1) {
             Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex1);
+        } catch (SQLException ex) {
+            Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
@@ -110,6 +110,9 @@ public class UserHandler extends Thread {
                 case "invite":
                     sendInvitation(requestJson);
                     break;
+                case "move":
+                    sendMove(requestJson);
+                    break;   
                 case "logout":
                     logout(requestJson);
                     break;
@@ -186,12 +189,12 @@ public class UserHandler extends Thread {
     }
 
     private void getAvailablePlayers(JsonObject requestJson) throws SQLException, IOException {
-        int id = requestJson.getInt("id");
+        int idd = requestJson.getInt("id");
         JsonArrayBuilder usersBuilder = Json.createArrayBuilder();
 
         ArrayList<UserData> onlinePlayers = DataAccessObject.getAvailableUser();
         for (UserData player : onlinePlayers) {
-            if(id != player.getId()){
+            if(idd != player.getId()){
                 JsonObject user = Json.createObjectBuilder()
                     .add("id", player.getId())
                     .add("name", player.getName())
@@ -200,42 +203,66 @@ public class UserHandler extends Thread {
             usersBuilder.add(user);
             }
         }
-        if(!onlinePlayers.isEmpty()){
-            JsonArray users = usersBuilder.build();
-            JsonObject responseJson = Json.createObjectBuilder()
-                    .add("response", "availablePlayers")
-                    .add("status", "success")
-                    .add("players", users)
-                    .build();
-            mouth.writeUTF(responseJson.toString());
-        } else {
-            JsonObject responseJson = Json.createObjectBuilder()
-                    .add("response", "login")
-                    .add("status", "fail")
-                    .build();
-            mouth.writeUTF(responseJson.toString());
-        }
+        JsonArray users = usersBuilder.build();
+        JsonObject responseJson = Json.createObjectBuilder()
+                .add("response", "availablePlayers")
+                .add("status", "success")
+                .add("players", users)
+                .build();
+        mouth.writeUTF(responseJson.toString());
+        
     }
 
     private void sendInvitation(JsonObject requestJson) throws IOException {
         System.out.println("server.UserHandler.sendInvitation()");
         int id2 = requestJson.getInt("id2");
         UserHandler player2 = getUser(id2);
-        player2.mouth.writeUTF(requestJson.toString());
-        mouth.flush();
+        if(player2.online){
+            player2.mouth.writeUTF(requestJson.toString());
+            player2.mouth.flush();
+        }
+        else {
+            JsonObject responseJson = Json.createObjectBuilder()
+                    .add("response", "invite")
+                    .add("status", false)
+                    .add("id1", requestJson.getInt("id1"))
+                    .add("id2", requestJson.getInt("id2"))
+                    .add("name1", requestJson.getString("name1"))
+                    .add("name2", requestJson.getString("name2"))
+                    .build();
+            mouth.writeUTF(responseJson.toString());
+            mouth.flush();
+        }
     }
 
     private void receiveInvitation(JsonObject responseJson) throws IOException {
         System.out.println("server.UserHandler.receiveInvitation()");
         int id1 = responseJson.getInt("id1");
         UserHandler player1 = getUser(id1);
+        int id2 = responseJson.getInt("id2");
+        UserHandler player2 = getUser(id2);
+        
+        if(responseJson.getBoolean("status")){
+            try {
+                UserData user = new UserData(id1, "", "", "", 0, true, true);
+                DataAccessObject.updateStatus(user);
+                player1.online = false;
+                
+                user = new UserData(id2, "", "", "", 0, true, true);
+                DataAccessObject.updateStatus(user);
+                player2.online = false;
+            } catch (SQLException ex) {
+                Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
         player1.mouth.writeUTF(responseJson.toString());
         mouth.flush();
     }
     
     private void logout(JsonObject requestJson) throws SQLException, IOException {
-        int id = requestJson.getInt("id");
-        UserData player = new UserData(id, "", "", "", 0, false, false);
+        int idd = requestJson.getInt("id");
+        UserData player = new UserData(idd, "", "", "", 0, false, false);
         int r = DataAccessObject.updateStatus(player);
         
         if(r != 0){
@@ -258,10 +285,19 @@ public class UserHandler extends Thread {
         System.out.println("server.UserHandler.getUser()");
         UserHandler userHandler = null;
         for (UserHandler user : UserHandlers) {
-            if (user.online && user.id == id) {
+            if (user.id == id) {
                 userHandler = user;
             }
         }
         return userHandler;
+    }
+    
+    private void sendMove(JsonObject requestJson) throws IOException
+    {
+        System.out.println("server.UserHandler.sendMove()");
+        int id2 = requestJson.getInt("player2Id");
+        UserHandler player2 = getUser(id2);
+        player2.mouth.writeUTF(requestJson.toString());
+        mouth.flush();
     }
 }
