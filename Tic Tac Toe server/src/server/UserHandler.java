@@ -1,5 +1,6 @@
 package server;
 
+import DTO.Records;
 import DTO.UserData;
 import DataBase.DataAccessObject;
 import java.io.DataInputStream;
@@ -115,6 +116,12 @@ public class UserHandler extends Thread {
                     break;   
                 case "logout":
                     logout(requestJson);
+                    break;
+                case "record":
+                    record(requestJson);
+                    break;
+                case "allRecords":
+                    getAllRecords(requestJson);
                     break;
                 default:
                     System.out.println("Unknown response type: " + requestType);
@@ -299,5 +306,54 @@ public class UserHandler extends Thread {
         UserHandler player2 = getUser(id2);
         player2.mouth.writeUTF(requestJson.toString());
         mouth.flush();
+    }
+    
+    
+     private void record(JsonObject requestJson) throws SQLException, IOException {
+        String recordname = requestJson.getString("recordName");
+        int pid = requestJson.getInt("id");
+        String moves = requestJson.getString("movesList");
+        Records record=new Records(0,recordname,moves,pid);
+        int added = DataAccessObject.addRecord(record);
+
+        if (added > 0) {
+            JsonObject responseJson = Json.createObjectBuilder()
+                    .add("response", "record")
+                    .add("status", "success")
+                    .build();
+            mouth.writeUTF(responseJson.toString());
+        } else {
+            JsonObject responseJson = Json.createObjectBuilder()
+                    .add("response", "record")
+                    .add("status", "fail")
+                    .build();
+            mouth.writeUTF(responseJson.toString());
+        }
+
+    }
+     
+     private void getAllRecords(JsonObject requestJson) throws SQLException, IOException {
+        int idd = requestJson.getInt("id");
+        JsonArrayBuilder usersBuilder = Json.createArrayBuilder();
+
+        ArrayList<Records> records = DataAccessObject.getAllRecords(idd);
+        for (Records player : records) {
+            
+                JsonObject user = Json.createObjectBuilder()
+                    .add("id", player.getId())
+                    .add("name", player.getName())
+                    .add("steps", player.getSteps())
+                    .build();
+            usersBuilder.add(user);
+            
+        }
+        JsonArray users = usersBuilder.build();
+        JsonObject responseJson = Json.createObjectBuilder()
+                .add("response", "allRecords")
+                .add("status", "success")
+                .add("records", users)
+                .build();
+        mouth.writeUTF(responseJson.toString());
+        
     }
 }

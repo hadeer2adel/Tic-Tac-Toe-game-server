@@ -14,7 +14,7 @@ public class DataAccessObject {
     
     public static void start() throws SQLException {
         dbURL = "jdbc:derby://localhost:1527/Tic Tac Toe Game";
-        dbName = "Java";
+        dbName = "java";
         dbPassword = "j1a2v3a4"; 
         DriverManager.registerDriver(new ClientDriver());
         con = DriverManager.getConnection(dbURL, dbName, dbPassword);
