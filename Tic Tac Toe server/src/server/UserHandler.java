@@ -85,6 +85,9 @@ public class UserHandler extends Thread {
                 case "invite":
                     receiveInvitation(responseJson);
                     break;
+                case "playAgain":
+                    receivePlayAgain(responseJson);
+                    break;
                 default:
                     System.out.println("Unknown response type: " + responseType);
                     break;
@@ -123,6 +126,9 @@ public class UserHandler extends Thread {
                 case "allRecords":
                     getAllRecords(requestJson);
                     break;
+                case "playAgain":
+                    sendPlayAgain(requestJson);
+                    break;
                 default:
                     System.out.println("Unknown response type: " + requestType);
                     break;
@@ -155,11 +161,7 @@ public class UserHandler extends Thread {
                     .add("status", "success")
                     .add("id", player.getId())
                     .add("name", player.getName())
-                    .add("email", player.getEmail())
-                    .add("password", player.getPassword())
                     .add("score", player.getScore())
-                    .add("is_available", player.getIs_available())
-                    .add("is_onGame", player.getIs_onGame())
                     .build();
             mouth.writeUTF(responseJson.toString());
         } else {
@@ -309,7 +311,7 @@ public class UserHandler extends Thread {
     }
     
     
-     private void record(JsonObject requestJson) throws SQLException, IOException {
+    private void record(JsonObject requestJson) throws SQLException, IOException {
         String recordname = requestJson.getString("recordName");
         int pid = requestJson.getInt("id");
         String moves = requestJson.getString("movesList");
@@ -332,7 +334,7 @@ public class UserHandler extends Thread {
 
     }
      
-     private void getAllRecords(JsonObject requestJson) throws SQLException, IOException {
+    private void getAllRecords(JsonObject requestJson) throws SQLException, IOException {
         int idd = requestJson.getInt("id");
         JsonArrayBuilder usersBuilder = Json.createArrayBuilder();
 
@@ -355,5 +357,53 @@ public class UserHandler extends Thread {
                 .build();
         mouth.writeUTF(responseJson.toString());
         
+    }
+
+    private void sendPlayAgain(JsonObject requestJson) throws IOException {
+        int myID = requestJson.getInt("myID");
+        int id1 = requestJson.getInt("id1");
+        int id2 = requestJson.getInt("id2");
+        UserHandler player;
+        
+        if(id1 == myID)
+            player = getUser(id2);
+        else 
+            player = getUser(id1);
+        
+        player.mouth.writeUTF(requestJson.toString());
+        player.mouth.flush();
+    }
+
+    private void receivePlayAgain(JsonObject responseJson) throws IOException {
+        int id1 = responseJson.getInt("id1");
+        UserHandler player1 = getUser(id1);
+        int id2 = responseJson.getInt("id2");
+        UserHandler player2 = getUser(id2);
+        
+        if(! responseJson.getBoolean("status")){
+            try {
+                UserData user1 = new UserData(id1, "", "", "", responseJson.getInt("score1"), true, false);
+                DataAccessObject.updateStatus(user1);
+                DataAccessObject.updateScore(user1);
+                player1.online = true;
+                
+                UserData user2 = new UserData(id2, "", "", "", responseJson.getInt("score2"), true, false);
+                DataAccessObject.updateStatus(user2);
+                DataAccessObject.updateScore(user2);
+                player2.online = true;
+            } catch (SQLException ex) {
+                Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        int myID = responseJson.getInt("myID");
+        UserHandler player;
+        if(id1 == myID)
+            player = getUser(id2);
+        else 
+            player = getUser(id1);
+        
+        player.mouth.writeUTF(responseJson.toString());
+        player.mouth.flush();
     }
 }

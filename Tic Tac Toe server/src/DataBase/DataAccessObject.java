@@ -81,8 +81,7 @@ public class DataAccessObject {
     
     public static int updateScore(UserData user) throws SQLException {
        int result = 0;
-        user.updateScore();
-        String sqlStat = "update userdata set score = ? where id = ?";
+        String sqlStat = "update userdata set score = score + ? where id = ?";
         PreparedStatement pst = con.prepareStatement(sqlStat);
         pst.setLong(1 , user.getScore());
         pst.setInt(2 , user.getId());
