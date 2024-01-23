@@ -60,6 +60,12 @@ public class UserHandler extends Thread {
             }
         }
     }
+    
+    public static void stopAll(){
+        for (UserHandler user : UserHandlers) {
+            user.closeSocket();
+        }
+    }
 
     private void closeSocket(){
         try {
@@ -128,6 +134,9 @@ public class UserHandler extends Thread {
                     break;
                 case "playAgain":
                     sendPlayAgain(requestJson);
+                    break;
+                case "cancel":
+                    sendCancel(requestJson);
                     break;
                 default:
                     System.out.println("Unknown response type: " + requestType);
@@ -405,5 +414,29 @@ public class UserHandler extends Thread {
         
         player.mouth.writeUTF(responseJson.toString());
         player.mouth.flush();
+    }
+    
+    private void sendCancel(JsonObject requestJson) throws IOException {
+        int id1 = requestJson.getInt("id1");
+        UserHandler player1 = getUser(id1);
+        int id2 = requestJson.getInt("id2");
+        UserHandler player2 = getUser(id2);
+        
+        try {
+            UserData user1 = new UserData(id1, "", "", "", requestJson.getInt("score1"), true, false);
+            DataAccessObject.updateStatus(user1);
+            DataAccessObject.updateScore(user1);
+            player1.online = true;
+
+            UserData user2 = new UserData(id2, "", "", "", requestJson.getInt("score2"), true, false);
+            DataAccessObject.updateStatus(user2);
+            DataAccessObject.updateScore(user2);
+            player2.online = true;
+        } catch (SQLException ex) {
+            Logger.getLogger(UserHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        player2.mouth.writeUTF(requestJson.toString());
+        player2.mouth.flush();
     }
 }

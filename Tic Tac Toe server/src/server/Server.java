@@ -12,7 +12,7 @@ public class Server implements Runnable{
     private ServerSocket serverSocket;
     private Socket clientSocket;
     private int port = 5005;
-    private boolean running;
+    private static boolean running;
 
     public boolean isRunning() {
         return running;
@@ -31,15 +31,15 @@ public class Server implements Runnable{
     
     public void stopServer() {
         running = false;
-        thread.stop();
         try {
-            if (serverSocket != null && !serverSocket.isClosed()) {
+            if (!serverSocket.isClosed()) {
                 serverSocket.close();
-                serverSocket = null;
+                thread.stop();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        UserHandler.stopAll();
     }
 
     @Override
@@ -47,7 +47,6 @@ public class Server implements Runnable{
         while(running){
             try {
                 clientSocket = serverSocket.accept();
-                System.out.println("Client connected: " + clientSocket.getInetAddress());
                 new UserHandler(clientSocket);
             } catch (IOException ex) {
                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
